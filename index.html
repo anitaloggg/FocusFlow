@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusFlow | 極致質感蕃茄鐘</title>
+    <meta name="description" content="結合 Google Tasks 風格與 Glassmorphism 美學的高效率蕃茄時鐘">
+    <link rel="stylesheet" href="style_v2.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body style="display: block !important; min-height: 100vh !important; height: auto !important; padding-top: 150px !important; margin: 0 !important; overflow-y: auto !important;">
+    <div class="overlay"></div>
+
+    <main class="main-container">
+        <!-- Timer Section -->
+        <section class="glass-panel timer-section">
+            <div class="timer-labels">
+                <div id="focusBadge" class="status-badge active-focus">Focus</div>
+                <div id="breakBadge" class="status-badge" style="display:none">Break</div>
+            </div>
+
+            <div class="time-display" id="timeDisplay">40:00</div>
+
+            <div class="timer-controls">
+                <button class="btn btn-secondary" id="resetBtn" title="重置">
+                    <i data-lucide="rotate-ccw"></i>
+                </button>
+                <button class="btn btn-primary" id="startPauseBtn">
+                    <i data-lucide="play" id="playIcon"></i>
+                </button>
+                <button class="btn btn-secondary" id="settingsBtn" title="設定">
+                    <i data-lucide="settings"></i>
+                </button>
+            </div>
+
+            <div class="cycle-info">
+                第 <span id="cycleCount">1</span> 次循環 • 
+                <span id="nextBreakLabel">下次休息: 5 分鐘</span>
+            </div>
+        </section>
+
+        <!-- Tasks Section -->
+        <section class="glass-panel tasks-section">
+            <div class="tasks-header">
+                <h2>工作目標</h2>
+                <button class="btn btn-secondary" id="clearTasks" style="width: 40px; height: 40px; border-radius: 12px;">
+                    <i data-lucide="trash-2" style="width: 18px;"></i>
+                </button>
+            </div>
+
+            <div class="add-task-container">
+                <input type="text" id="taskInput" class="task-input" placeholder="新增待辦事項...">
+                <button class="btn btn-secondary" id="addTaskBtn" style="width: 48px; height: 48px; border-radius: 12px;">
+                    <i data-lucide="plus"></i>
+                </button>
+            </div>
+
+            <div class="task-list" id="taskList">
+                <!-- Tasks will be injected here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Settings Modal -->
+    <div class="modal-backdrop" id="modalBackdrop">
+        <div class="modal">
+            <h2 style="margin-bottom: 24px;">計時設定 (分鐘)</h2>
+            <div class="settings-group">
+                <label>專注時長</label>
+                <input type="number" id="focusDuration" value="40" min="1" max="120">
+            </div>
+            <div class="settings-group">
+                <label>短休息時長</label>
+                <input type="number" id="shortBreakDuration" value="5" min="1" max="30">
+            </div>
+            <div class="settings-group">
+                <label>長休息 (雙數循環)</label>
+                <input type="number" id="longBreakDuration" value="10" min="1" max="60">
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 32px;">
+                <button class="btn btn-secondary" id="closeSettings" style="flex: 1; height: 48px; border-radius: 12px;">取消</button>
+                <button class="btn btn-primary" id="saveSettings" style="flex: 1; height: 48px; border-radius: 12px; font-size: 1rem; font-weight: 600;">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Element -->
+    <audio id="alertSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+    <script src="app.js"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>

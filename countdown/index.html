@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="優雅的倒數計時應用程式，支援多個計時器、自訂時間與音效提醒。" />
+  <title>倒數計時 — Countdown Timer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ===== CSS 自定義屬性（設計系統） ===== */
+    :root {
+      --bg-primary:    #0a0a0f;
+      --bg-secondary:  #12121a;
+      --bg-card:       #1a1a26;
+      --bg-card-hover: #20202e;
+      --accent-1:      #7c3aed;  /* 紫 */
+      --accent-2:      #06b6d4;  /* 青 */
+      --accent-3:      #f59e0b;  /* 琥珀 */
+      --accent-danger: #ef4444;
+      --accent-success:#10b981;
+      --text-primary:  #f1f5f9;
+      --text-secondary:#94a3b8;
+      --text-muted:    #475569;
+      --border:        rgba(255,255,255,0.07);
+      --border-focus:  rgba(124,58,237,0.6);
+      --shadow-glow:   0 0 40px rgba(124,58,237,0.25);
+      --radius-sm:     8px;
+      --radius-md:     16px;
+      --radius-lg:     24px;
+      --transition:    0.25s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    /* ===== 基礎重設 ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ===== 背景動態漸層 ===== */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(124,58,237,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 90%, rgba(6,182,212,0.08) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ===== 版面配置 ===== */
+    .app-wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+
+    /* ===== 頁頭 ===== */
+    .app-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .app-header .badge {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 100px;
+      margin-bottom: 16px;
+    }
+    .app-header h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, var(--accent-2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.2;
+    }
+    .app-header p {
+      margin-top: 10px;
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+
+    /* ===== 快速選擇按鈕 ===== */
+    .quick-select {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 36px;
+    }
+    .quick-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 18px;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .quick-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent-1);
+      color: var(--text-primary);
+      transform: translateY(-2px);
+    }
+
+    /* ===== 倒數設定區 ===== */
+    .setup-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      margin-bottom: 28px;
+      transition: box-shadow var(--transition);
+    }
+    .setup-card:focus-within {
+      box-shadow: var(--shadow-glow);
+      border-color: var(--border-focus);
+    }
+
+    /* 標題欄 */
+    .setup-card label.card-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    /* 時間輸入 */
+    .time-inputs {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .time-field {
+      flex: 1;
+      min-width: 90px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .time-field span {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .time-field input[type="number"] {
+      width: 100%;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 2rem;
+      font-weight: 700;
+      text-align: center;
+      padding: 12px 8px;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+    .time-field input[type="number"]::-webkit-inner-spin-button,
+    .time-field input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .time-field input[type="number"]:focus {
+      border-color: var(--accent-1);
+      box-shadow: 0 0 0 3px rgba(124,58,237,0.2);
+    }
+    .time-separator {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      padding-top: 16px;
+    }
+
+    /* 計時器名稱 */
+    .name-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .name-field {
+      flex: 1;
+    }
+    .name-field input[type="text"] {
+      width: 100%;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .name-field input[type="text"]::placeholder { color: var(--text-muted); }
+    .name-field input[type="text"]:focus {
+      border-color: var(--accent-1);
+      box-shadow: 0 0 0 3px rgba(124,58,237,0.2);
+    }
+
+    /* ===== 主按鈕 ===== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 12px 24px;
+      border-radius: var(--radius-sm);
+      border: none;
+      cursor: pointer;
+      transition: all var(--transition);
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-1), #9333ea);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(124,58,237,0.55);
+    }
+    .btn-primary:active { transform: translateY(0); }
+
+    /* ===== 計時器卡片清單 ===== */
+    .timers-section h2 {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .timers-section h2 .count-badge {
+      background: var(--accent-1);
+      color: #fff;
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 100px;
+    }
+    .timers-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .timer-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px 28px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      transition: all var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .timer-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+      transform: scaleX(var(--progress, 1));
+      transform-origin: left;
+      transition: transform 1s linear;
+    }
+    .timer-card.running {
+      border-color: rgba(124,58,237,0.35);
+      box-shadow: 0 4px 24px rgba(124,58,237,0.12);
+    }
+    .timer-card.paused {
+      border-color: rgba(245,158,11,0.35);
+    }
+    .timer-card.finished {
+      border-color: rgba(16,185,129,0.5);
+      animation: finishPulse 1.5s ease-in-out infinite alternate;
+    }
+    @keyframes finishPulse {
+      from { box-shadow: 0 0 0 rgba(16,185,129,0); }
+      to   { box-shadow: 0 0 24px rgba(16,185,129,0.3); }
+    }
+
+    .timer-info { min-width: 0; }
+    .timer-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .status-dot.running  { background: var(--accent-1); box-shadow: 0 0 6px var(--accent-1); animation: blink 1.2s ease-in-out infinite; }
+    .status-dot.paused   { background: var(--accent-3); }
+    .status-dot.finished { background: var(--accent-success); }
+    @keyframes blink {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
+    }
+
+    .timer-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(2rem, 6vw, 3.2rem);
+      font-weight: 700;
+      letter-spacing: -1px;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+    .timer-card.finished .timer-display {
+      background: linear-gradient(135deg, var(--accent-success), var(--accent-2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* 控制按鈕群 */
+    .timer-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    .ctrl-btn {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition);
+      position: relative;
+    }
+    .ctrl-btn:hover { transform: scale(1.1); }
+    .ctrl-btn.play-pause {
+      width: 50px; height: 50px;
+      background: linear-gradient(135deg, var(--accent-1), #9333ea);
+      border-color: transparent;
+      color: #fff;
+      font-size: 18px;
+      box-shadow: 0 4px 16px rgba(124,58,237,0.4);
+    }
+    .ctrl-btn.play-pause:hover {
+      box-shadow: 0 6px 22px rgba(124,58,237,0.6);
+    }
+    .ctrl-btn.play-pause.paused-state {
+      background: linear-gradient(135deg, var(--accent-3), #d97706);
+      box-shadow: 0 4px 16px rgba(245,158,11,0.4);
+    }
+    .ctrl-btn.reset-btn:hover  { background: rgba(245,158,11,0.15); border-color: var(--accent-3); color: var(--accent-3); }
+    .ctrl-btn.delete-btn:hover { background: rgba(239,68,68,0.15); border-color: var(--accent-danger); color: var(--accent-danger); }
+
+    .controls-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    /* ===== 空狀態 ===== */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+    .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+    .empty-state p { font-size: 15px; }
+
+    /* ===== 進場動畫 ===== */
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .timer-card { animation: slideIn 0.35s ease forwards; }
+
+    /* ===== Toast 通知 ===== */
+    #toast-container {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 9999;
+    }
+    .toast {
+      background: var(--bg-card);
+      border: 1px solid var(--accent-success);
+      color: var(--text-primary);
+      padding: 14px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      animation: toastIn 0.3s ease forwards;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(60px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ===== RWD ===== */
+    @media (max-width: 520px) {
+      .timer-card { grid-template-columns: 1fr; }
+      .timer-controls { flex-direction: row; align-items: center; }
+      .time-separator { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-wrapper">
+
+  <!-- 頁頭 -->
+  <header class="app-header">
+    <div class="badge">Countdown Timer</div>
+    <h1>倒數計時器</h1>
+    <p>設定時間，專注當下</p>
+  </header>
+
+  <!-- 快速選擇 -->
+  <div class="quick-select" aria-label="快速時間選擇">
+    <button class="quick-btn" data-seconds="60">1 分鐘</button>
+    <button class="quick-btn" data-seconds="300">5 分鐘</button>
+    <button class="quick-btn" data-seconds="600">10 分鐘</button>
+    <button class="quick-btn" data-seconds="900">15 分鐘</button>
+    <button class="quick-btn" data-seconds="1500">25 分鐘 🍅</button>
+    <button class="quick-btn" data-seconds="3600">1 小時</button>
+  </div>
+
+  <!-- 設定卡 -->
+  <div class="setup-card" role="region" aria-label="新增計時器">
+    <label class="card-label" for="input-hours">設定倒數時間</label>
+    <div class="time-inputs">
+      <div class="time-field">
+        <input type="number" id="input-hours"   min="0" max="99" value="0"  placeholder="0"  aria-label="小時" />
+        <span>小時</span>
+      </div>
+      <div class="time-separator">:</div>
+      <div class="time-field">
+        <input type="number" id="input-minutes" min="0" max="59" value="5"  placeholder="0"  aria-label="分鐘" />
+        <span>分鐘</span>
+      </div>
+      <div class="time-separator">:</div>
+      <div class="time-field">
+        <input type="number" id="input-seconds" min="0" max="59" value="0"  placeholder="0"  aria-label="秒數" />
+        <span>秒鐘</span>
+      </div>
+    </div>
+
+    <div class="name-row">
+      <div class="name-field">
+        <input type="text" id="input-name" placeholder="計時器名稱（選填）" maxlength="30" aria-label="計時器名稱" />
+      </div>
+      <button class="btn btn-primary" id="add-timer-btn" aria-label="新增計時器">
+        <span>＋</span> 新增計時器
+      </button>
+    </div>
+  </div>
+
+  <!-- 計時器清單 -->
+  <section class="timers-section" aria-live="polite">
+    <h2>
+      計時器清單
+      <span class="count-badge" id="timer-count">0</span>
+    </h2>
+    <div class="timers-list" id="timers-list">
+      <div class="empty-state" id="empty-state">
+        <div class="icon">⏱</div>
+        <p>尚未新增任何計時器<br>使用上方表單開始計時吧！</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- Toast 容器 -->
+<div id="toast-container" aria-live="assertive"></div>
+
+<script>
+  /* ===== 全域狀態 ===== */
+  let timers = [];       // { id, name, total, remaining, state: 'idle'|'running'|'paused'|'finished' }
+  let intervals = {};    // { id: intervalHandle }
+
+  /* ===== 音效：利用 Web Audio API 產生提示音 ===== */
+  function playFinishSound() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const start = ctx.currentTime + i * 0.18;
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.35, start + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.4);
+        osc.start(start);
+        osc.stop(start + 0.4);
+      });
+    } catch(e) { /* 忽略音訊錯誤 */ }
+  }
+
+  /* ===== 格式化時間 ===== */
+  function fmt(sec) {
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    if (h > 0) return `${h}:${pad(m)}:${pad(s)}`;
+    return `${pad(m)}:${pad(s)}`;
+  }
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  /* ===== 建立計時器 ===== */
+  function createTimer(total, name) {
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    const timer = { id, name: name || '計時器', total, remaining: total, state: 'idle' };
+    timers.push(timer);
+    renderAll();
+    // 自動啟動
+    startTimer(id);
+  }
+
+  /* ===== 啟動計時器 ===== */
+  function startTimer(id) {
+    const t = timers.find(x => x.id === id);
+    if (!t || t.state === 'finished') return;
+    t.state = 'running';
+    updateCard(id);
+    intervals[id] = setInterval(() => {
+      t.remaining = Math.max(0, t.remaining - 1);
+      updateDisplay(id);
+      if (t.remaining <= 0) {
+        clearInterval(intervals[id]);
+        t.state = 'finished';
+        updateCard(id);
+        playFinishSound();
+        showToast(`✅ "${t.name}" 倒數完成！`);
+      }
+    }, 1000);
+  }
+
+  /* ===== 暫停 / 繼續 ===== */
+  function toggleTimer(id) {
+    const t = timers.find(x => x.id === id);
+    if (!t) return;
+    if (t.state === 'running') {
+      clearInterval(intervals[id]);
+      t.state = 'paused';
+    } else if (t.state === 'paused' || t.state === 'idle') {
+      startTimer(id);
+      return;
+    }
+    updateCard(id);
+  }
+
+  /* ===== 重設計時器 ===== */
+  function resetTimer(id) {
+    const t = timers.find(x => x.id === id);
+    if (!t) return;
+    clearInterval(intervals[id]);
+    t.remaining = t.total;
+    t.state = 'idle';
+    updateCard(id);
+  }
+
+  /* ===== 刪除計時器 ===== */
+  function deleteTimer(id) {
+    clearInterval(intervals[id]);
+    timers = timers.filter(x => x.id !== id);
+    const el = document.getElementById('card-' + id);
+    if (el) {
+      el.style.animation = 'none';
+      el.style.transition = 'all 0.3s ease';
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(-10px) scale(0.97)';
+      setTimeout(() => { el.remove(); updateCount(); }, 300);
+    }
+  }
+
+  /* ===== 渲染全部（首次） ===== */
+  function renderAll() {
+    const list = document.getElementById('timers-list');
+    const empty = document.getElementById('empty-state');
+    // 清除既有卡片（保留 empty-state）
+    [...list.querySelectorAll('.timer-card')].forEach(c => c.remove());
+    timers.forEach(t => list.appendChild(buildCard(t)));
+    empty.style.display = timers.length ? 'none' : 'block';
+    updateCount();
+  }
+
+  /* ===== 建構卡片 DOM ===== */
+  function buildCard(t) {
+    const card = document.createElement('div');
+    card.className = `timer-card ${t.state}`;
+    card.id = 'card-' + t.id;
+    card.style.setProperty('--progress', t.total > 0 ? t.remaining / t.total : 1);
+    card.innerHTML = `
+      <div class="timer-info">
+        <div class="timer-name">
+          <span class="status-dot ${t.state}" id="dot-${t.id}"></span>
+          <span id="name-${t.id}">${escHtml(t.name)}</span>
+        </div>
+        <div class="timer-display" id="display-${t.id}">${fmt(t.remaining)}</div>
+      </div>
+      <div class="timer-controls">
+        <div class="controls-row">
+          <button class="ctrl-btn play-pause ${t.state === 'paused' ? 'paused-state' : ''}"
+                  id="pp-${t.id}"
+                  aria-label="${t.state === 'running' ? '暫停' : '啟動'}"
+                  onclick="toggleTimer('${t.id}')">
+            ${t.state === 'running' ? '⏸' : '▶'}
+          </button>
+        </div>
+        <div class="controls-row">
+          <button class="ctrl-btn reset-btn" aria-label="重設" onclick="resetTimer('${t.id}')">↺</button>
+          <button class="ctrl-btn delete-btn" aria-label="刪除" onclick="deleteTimer('${t.id}')">✕</button>
+        </div>
+      </div>
+    `;
+    return card;
+  }
+
+  /* ===== 更新顯示數字 ===== */
+  function updateDisplay(id) {
+    const t = timers.find(x => x.id === id);
+    if (!t) return;
+    const disp = document.getElementById('display-' + id);
+    if (disp) disp.textContent = fmt(t.remaining);
+    const card = document.getElementById('card-' + id);
+    if (card && t.total > 0) {
+      card.style.setProperty('--progress', t.remaining / t.total);
+    }
+    // 更新頁面 title（若只有一個計時器）
+    if (timers.length === 1) {
+      document.title = `⏱ ${fmt(t.remaining)} — 倒數計時`;
+    }
+  }
+
+  /* ===== 更新整張卡片狀態 ===== */
+  function updateCard(id) {
+    const t = timers.find(x => x.id === id);
+    if (!t) return;
+    const card = document.getElementById('card-' + id);
+    if (!card) return;
+    card.className = `timer-card ${t.state}`;
+    const dot = document.getElementById('dot-' + id);
+    if (dot) { dot.className = `status-dot ${t.state}`; }
+    const pp = document.getElementById('pp-' + id);
+    if (pp) {
+      pp.innerHTML = (t.state === 'running') ? '⏸' : (t.state === 'finished' ? '✓' : '▶');
+      pp.className = `ctrl-btn play-pause ${t.state === 'paused' ? 'paused-state' : ''}`;
+      pp.setAttribute('aria-label', t.state === 'running' ? '暫停' : '啟動');
+      pp.disabled = t.state === 'finished';
+    }
+    updateDisplay(id);
+    if (timers.length > 1 || t.state === 'finished') {
+      document.title = '倒數計時 — Countdown Timer';
+    }
+  }
+
+  /* ===== 更新計數徽章 ===== */
+  function updateCount() {
+    document.getElementById('timer-count').textContent = timers.length;
+    const empty = document.getElementById('empty-state');
+    empty.style.display = timers.length ? 'none' : 'block';
+  }
+
+  /* ===== Toast 通知 ===== */
+  function showToast(msg) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = msg;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.style.transition = 'all 0.4s ease';
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(60px)';
+      setTimeout(() => toast.remove(), 400);
+    }, 3500);
+  }
+
+  /* ===== XSS 防護 ===== */
+  function escHtml(str) {
+    return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  /* ===== 讀取輸入值並新增 ===== */
+  document.getElementById('add-timer-btn').addEventListener('click', () => {
+    const h = parseInt(document.getElementById('input-hours').value)   || 0;
+    const m = parseInt(document.getElementById('input-minutes').value) || 0;
+    const s = parseInt(document.getElementById('input-seconds').value) || 0;
+    const name = document.getElementById('input-name').value.trim();
+    const total = h * 3600 + m * 60 + s;
+    if (total <= 0) {
+      showToast('⚠️ 請輸入大於 0 的時間');
+      return;
+    }
+    createTimer(total, name || `計時器 ${timers.length + 1}`);
+    // 清除輸入
+    document.getElementById('input-name').value = '';
+  });
+
+  /* ===== 快速選擇 ===== */
+  document.querySelectorAll('.quick-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sec = parseInt(btn.dataset.seconds);
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
+      document.getElementById('input-hours').value   = h;
+      document.getElementById('input-minutes').value = m;
+      document.getElementById('input-seconds').value = s;
+      // 視覺反饋
+      btn.style.background = 'linear-gradient(135deg, var(--accent-1), var(--accent-2))';
+      btn.style.color = '#fff';
+      btn.style.borderColor = 'transparent';
+      setTimeout(() => {
+        btn.style.background = '';
+        btn.style.color = '';
+        btn.style.borderColor = '';
+      }, 800);
+    });
+  });
+
+  /* ===== Enter 鍵新增 ===== */
+  ['input-hours','input-minutes','input-seconds','input-name'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('add-timer-btn').click();
+    });
+  });
+
+  /* ===== 數字輸入格式化（離開焦點時補零） ===== */
+  ['input-hours','input-minutes','input-seconds'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('blur', () => {
+      let val = parseInt(el.value) || 0;
+      // 限制最大值
+      const max = id === 'input-hours' ? 99 : 59;
+      val = Math.max(0, Math.min(max, val));
+      el.value = val;
+    });
+  });
+
+  /* ===== 初始渲染 ===== */
+  renderAll();
+</script>
+</body>
+</html>

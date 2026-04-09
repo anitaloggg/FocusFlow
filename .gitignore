@@ -1,0 +1,15 @@
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Logs
+*.log
+
+# Documentations (Optional, keep if you want them in repo)
+# docs/
+# *.md
+
+# System files
+.DS_Store
+.gemini/
