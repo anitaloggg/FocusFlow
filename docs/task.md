@@ -1,6 +1,0 @@
-- [x] 更新 `app.js` 使用 `parseFloat` 以支援小數分鐘設定
-- [x] 生成並更換高品質背景圖 `bg.png`
-- [x] 驗證計時器循環邏輯 (1 分鐘間隔測試)
-- [x] 檢查響應式佈局穩定性
-- [x] 驗證 LocalStorage 恢復功能
-- [x] 完成專案 Walkthrough 報告
