@@ -204,7 +204,7 @@ class PomodoroTimer {
     initEventListeners() {
         this.startPauseBtn.addEventListener('click', () => this.toggleTimer());
         document.getElementById('resetBtn').addEventListener('click', () => this.reset());
-        
+
         // Notification permission
         if (Notification.permission !== 'denied') {
             Notification.requestPermission();
