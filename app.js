@@ -27,10 +27,27 @@ class PomodoroTimer {
         this.cycleCountEl = document.getElementById('cycleCount');
         this.nextBreakLabel = document.getElementById('nextBreakLabel');
         this.alertSound = document.getElementById('alertSound');
+        this.endTimeDisplay = document.getElementById('endTime');
+        this.autoContinueCheckbox = document.getElementById('autoContinue');
 
+        this.worker = null;
+        this.initWorker();
         this.loadSettings();
         this.updateDisplay();
         this.initEventListeners();
+    }
+
+    initWorker() {
+        this.worker = new Worker('timer-worker.js');
+        this.worker.onmessage = (e) => {
+            if (e.data === 'tick') {
+                this.timeLeft--;
+                if (this.timeLeft <= 0) {
+                    this.timerFinished();
+                }
+                this.updateDisplay();
+            }
+        };
     }
 
     loadSettings() {
@@ -46,16 +63,31 @@ class PomodoroTimer {
     }
 
     updateDisplay() {
-        const minutes = Math.floor(this.timeLeft / 60);
-        const seconds = this.timeLeft % 60;
+        const minutes = Math.floor(Math.max(0, this.timeLeft) / 60);
+        const seconds = Math.max(0, this.timeLeft) % 60;
         const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         this.timeDisplay.textContent = formattedTime;
         document.title = `${formattedTime} - FocusFlow`;
+
+        // Update end time
+        this.updateEndTimeDisplay();
 
         // Update cycle info
         this.cycleCountEl.textContent = this.currentCycle;
         const nextBreakDuration = (this.currentCycle % 2 === 0) ? this.settings.longBreak : this.settings.shortBreak;
         this.nextBreakLabel.textContent = `下次休息: ${nextBreakDuration} 分鐘`;
+    }
+
+    updateEndTimeDisplay() {
+        if (!this.isRunning) {
+            this.endTimeDisplay.textContent = '計時未啟動';
+            return;
+        }
+        const now = new Date();
+        const finishTime = new Date(now.getTime() + this.timeLeft * 1000);
+        const hours = finishTime.getHours().toString().padStart(2, '0');
+        const minutes = finishTime.getMinutes().toString().padStart(2, '0');
+        this.endTimeDisplay.textContent = `預計結束時間: ${hours}:${minutes}`;
     }
 
     toggleTimer() {
@@ -71,21 +103,17 @@ class PomodoroTimer {
         this.isRunning = true;
         this.playIcon.setAttribute('data-lucide', 'pause');
         lucide.createIcons();
+        this.updateEndTimeDisplay();
 
-        this.timerId = setInterval(() => {
-            this.timeLeft--;
-            if (this.timeLeft <= 0) {
-                this.timerFinished();
-            }
-            this.updateDisplay();
-        }, 1000);
+        this.worker.postMessage('start');
     }
 
     pause() {
         this.isRunning = false;
-        clearInterval(this.timerId);
+        this.worker.postMessage('stop');
         this.playIcon.setAttribute('data-lucide', 'play');
         lucide.createIcons();
+        this.updateEndTimeDisplay();
     }
 
     reset() {
@@ -96,22 +124,41 @@ class PomodoroTimer {
         this.updateDisplay();
     }
 
-    timerFinished() {
+    async timerFinished() {
         this.pause();
-        this.playSound();
         this.notify();
 
+        const isAuto = this.autoContinueCheckbox.checked;
+
+        if (isAuto) {
+            await this.playAlertThreeTimes();
+        } else {
+            this.playSound();
+        }
+
         if (this.mode === 'focus') {
-            // Check if even cycle for long break
             if (this.currentCycle % 2 === 0) {
                 this.startMode('longBreak');
             } else {
                 this.startMode('shortBreak');
             }
         } else {
-            // After any break, return to focus and increment cycle
             this.currentCycle++;
             this.startMode('focus');
+        }
+
+        if (isAuto) {
+            this.start();
+        }
+    }
+
+    async playAlertThreeTimes() {
+        for (let i = 0; i < 3; i++) {
+            this.playSound();
+            if (i < 2) {
+                // Wait 1.5 seconds between starts of beeps
+                await new Promise(resolve => setTimeout(resolve, 1500));
+            }
         }
     }
 

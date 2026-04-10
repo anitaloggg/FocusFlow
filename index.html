@@ -21,6 +21,7 @@
             </div>
 
             <div class="time-display" id="timeDisplay">40:00</div>
+            <div id="endTime" class="end-time">預計結束時間: --:--</div>
 
             <div class="timer-controls">
                 <button class="btn btn-secondary" id="resetBtn" title="重置">
@@ -32,6 +33,14 @@
                 <button class="btn btn-secondary" id="settingsBtn" title="設定">
                     <i data-lucide="settings"></i>
                 </button>
+            </div>
+            
+            <div class="auto-continue-wrap">
+                <label class="auto-continue-label">
+                    <input type="checkbox" id="autoContinue">
+                    <span class="checkbox-custom"></span>
+                    <span>連續計時模式</span>
+                </label>
             </div>
 
             <div class="cycle-info">
