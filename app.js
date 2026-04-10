@@ -21,7 +21,6 @@ class PomodoroTimer {
         // UI Elements
         this.timeDisplay = document.getElementById('timeDisplay');
         this.startPauseBtn = document.getElementById('startPauseBtn');
-        this.playIcon = document.getElementById('playIcon');
         this.focusBadge = document.getElementById('focusBadge');
         this.breakBadge = document.getElementById('breakBadge');
         this.cycleCountEl = document.getElementById('cycleCount');
@@ -101,7 +100,7 @@ class PomodoroTimer {
     start() {
         if (this.isRunning) return;
         this.isRunning = true;
-        this.playIcon.setAttribute('data-lucide', 'pause');
+        this.startPauseBtn.innerHTML = '<i data-lucide="pause"></i>';
         lucide.createIcons();
         this.updateEndTimeDisplay();
 
@@ -111,7 +110,7 @@ class PomodoroTimer {
     pause() {
         this.isRunning = false;
         this.worker.postMessage('stop');
-        this.playIcon.setAttribute('data-lucide', 'play');
+        this.startPauseBtn.innerHTML = '<i data-lucide="play"></i>';
         lucide.createIcons();
         this.updateEndTimeDisplay();
     }
