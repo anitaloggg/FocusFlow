@@ -38,6 +38,6 @@ FocusFlow 是一款結合 **Glassmorphism (玻璃擬態)** 美學與高效生產
 
 - **協作開發**: Anita Lo & [Antigravity](https://github.com/google-deepmind)
 - **建立日期**: 2026-04-09
-- **發布日期**: 2026-04-09
+- **最新更新**: 2026-04-10
 
 *Made with ❤️ for productivity.*
